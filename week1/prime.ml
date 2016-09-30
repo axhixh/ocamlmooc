@@ -4,9 +4,9 @@ let rec gcd n m =
   else if m = 0 then
     n
   else if m > n then
-    gcd (m - n)  n
+    gcd (m mod n)  n
   else
-    gcd (n - m)  m
+    gcd (n mod m)  m
 ;;
 
 let rec multiple_upto n r =
