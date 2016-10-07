@@ -16,7 +16,7 @@ let find dict word =
     -1
   else
     let rec helper lower_index higher_index =
-      let index = (lower_index + higher_index) / 2 in
+      let index = int_of_float (ceil (float_of_int lower_index +. float_of_int higher_index) /. 2.) in
       let result = String.compare dict.(index) word in
       if result = 0 then
         index
