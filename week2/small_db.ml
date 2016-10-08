@@ -1,3 +1,5 @@
+(* prelude - include db.ml *)
+
 let proof_of_bug =
   [| {code = 0; contact = {name="a";phone_number=(1,2,3,4)}};
      {code = 0; contact = {name="b";phone_number=(1,2,3,4)}};
