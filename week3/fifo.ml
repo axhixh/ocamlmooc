@@ -19,7 +19,7 @@
 
  let dequeue ((front : int list), (back: int list)): (int * queue) =
      match (front, back) with
-     | ([], y) -> let reversed = List.rev y in
-     let x::rs = reversed in (x, ([], (List.rev rs)))
      | (x::rs, y) -> (x, (rs, y));;
+     | ([], y) -> let reversed = List.rev y in
+          let x::rs = reversed in (x, (rs, []));;
 
