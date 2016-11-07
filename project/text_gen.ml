@@ -111,3 +111,59 @@ let walk_ltable table =
   in
   aux [] "START";;
 
+(* -- Part B -------------------------------------------------------------- *)
+
+let compute_distribution l =
+  let sorted = List.sort (fun a b -> String.compare a b) l in
+  let rec aux accu count words =
+    match words with
+    | [] -> accu
+    | h1::h2::rs when h1 = h2 -> aux accu (count + 1) (h2::rs)
+    | h::rs -> aux ((h, (count + 1)) :: accu) 0 rs
+  in
+  { total = List.length sorted;  amounts = aux [] 0 sorted };;
+
+let build_htable words =
+  let words' = ("START" :: words) @ ["STOP"]
+  and table = Hashtbl.create 16 in
+  let update word next = 
+    try
+      let o = Hashtbl.find table word in 
+      Hashtbl.replace table word (next::o) 
+    with _ -> Hashtbl.add table word [next]
+  in
+  let rec aux words =
+    match words with
+    | h1::h2::rs -> let () = update h1 h2 in aux (h2::rs)
+    | [] -> () 
+    | h::rs -> ()
+  in
+  aux words';
+  let result = Hashtbl.create (Hashtbl.length table) in 
+  Hashtbl.iter (fun k v -> Hashtbl.add result k (compute_distribution v)) table;
+  result;;
+
+let next_in_htable table word =
+  let () = Random.self_init() in
+  let distribution = Hashtbl.find table word in
+  let i = Random.int distribution.total in
+  let rec pick sum = function 
+    | [(w,v)] -> w
+    | (w,v)::rs -> if (sum + v) - i <= 0 then pick (sum + v) rs else w
+    | _ -> ""
+  in
+  pick 0 distribution.amounts;;
+
+(* exists in original template; not sure how it is called *)
+let walk table =
+  "Replace this string with your implementation." ;;
+
+let walk_htable table =
+  let rec aux accu next =
+    match next with
+    | "START" -> let next' = next_in_htable table next in
+      aux accu next'
+    | "STOP" -> accu
+    | _ -> let next' = next_in_htable table next in
+      aux (accu @ [next]) next'
+  in aux [] "START" ;;
