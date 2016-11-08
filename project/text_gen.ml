@@ -167,3 +167,139 @@ let walk_htable table =
     | _ -> let next' = next_in_htable table next in
       aux (accu @ [next]) next'
   in aux [] "START" ;;
+
+(* -- Part C -------------------------------------------------------------- *)
+
+let is_char c = 
+  (c >= 'A' && c <= 'Z') 
+  || (c >= 'a' && c <= 'z') 
+  || (c >= '0' && c <= '9')
+  || (c >= '\128' && c <= '\255');;
+
+let is_sentence_end c = c = '?' || c = '!' || c = '.';;
+let is_punctuation c = 
+  c = ';' ||
+  c = ',' ||
+  c = ':' ||
+  c = '-' ||
+  c = '"' ||
+  c = '\'' ||
+  is_sentence_end c;;
+
+
+let sentences str =
+  let slen = String.length str in
+  let rec aux s_accu w_accu b i =
+    if i = slen then
+      let w' = if Buffer.length b > 0 then
+          w_accu @ [Buffer.contents b]
+        else 
+          w_accu in
+      let s' = if List.length w' > 0 then
+          s_accu @ [w']
+        else
+          s_accu
+      in s'
+    else
+      let c = String.get str i in
+      if is_char c then
+        let () = Buffer.add_char b c in
+        aux s_accu w_accu b (i + 1)
+      else if is_sentence_end c then
+        let w' = if Buffer.length b > 0 then
+            w_accu @ [Buffer.contents b] @ [String.make 1 c]
+          else 
+            w_accu @ [String.make 1 c]
+        in
+        let s' = s_accu @ [w'] in
+        Buffer.reset b;
+        aux s' [] b (i + 1)
+      else if is_punctuation c then
+        let w' = if Buffer.length b > 0 then
+            w_accu @ [Buffer.contents b] @ [String.make 1 c]
+          else
+            w_accu @ [String.make 1 c]
+        in
+        Buffer.reset b;
+        aux s_accu w' b (i + 1)
+      else
+        let w' = if Buffer.length b > 0 then
+            w_accu @ [Buffer.contents b]
+          else w_accu in
+        Buffer.reset b;
+        aux s_accu w' b (i + 1)
+  in
+  aux [] [] (Buffer.create 16) 0;;
+  
+let rec start pl = 
+  match pl with
+  | 0 -> []
+  | _ -> "START" :: start (pl - 1) ;;
+
+let shift l x =
+  match l with 
+  | [] -> [x]
+  | h::rs -> rs @ [x];;
+
+let build_ptable words pl =
+  let starts = start pl in
+  let words' =  words @ ["STOP"] in
+  let table = Hashtbl.create 16 in
+  let update key next =
+    try
+      let old = Hashtbl.find table key in
+      Hashtbl.replace table key (next::old)
+    with _ -> Hashtbl.add table key [next]
+  in
+  let rec aux slice words = 
+    match words with
+    | h::rs -> 
+      let () = update slice h in aux (shift slice h) rs
+    | _ -> ()
+  in 
+  aux starts words';
+  let result = Hashtbl.create (Hashtbl.length table) in
+  Hashtbl.iter (fun k v -> Hashtbl.add result k (compute_distribution v)) table;
+  {prefix_length = pl; table = result};;
+
+let walk_ptable { table ; prefix_length = pl } =
+  let rec aux accu next = 
+    let word = next_in_htable table next in
+    if word = "STOP" then 
+      accu
+    else
+      aux (accu @ [word]) (shift next word)
+  in
+  aux [] (start pl);;
+
+let rec merge_alist l1 l2 =
+  match l1 with
+  | [] -> l2
+  | (k,v)::rs -> try
+      let old = List.assoc k l2 in
+      let l2' = List.remove_assoc k l2 in
+      merge_alist rs ((k, v + old)::l2')
+    with _ -> merge_alist rs ((k,v)::l2);;
+
+let rec merge_ptables tl =
+  let append_ptables t1 t2 =
+    if t1.prefix_length <> t2.prefix_length then
+      raise (Invalid_argument "prefix length don't match")
+    else
+      let result = Hashtbl.copy t1.table in
+      Hashtbl.iter 
+        (fun k v ->
+           try
+             let old = Hashtbl.find result k in 
+             Hashtbl.replace result k 
+               {total = v.total + old.total; 
+                amounts = merge_alist v.amounts old.amounts}
+           with Not_found -> Hashtbl.add result k v
+        ) 
+        t2.table;
+      {prefix_length = t1.prefix_length; table = result} 
+  in
+  match tl with
+  | [] -> raise (Invalid_argument "empty list")
+  | [t] -> t
+  | h1::h2::ts -> merge_ptables ((append_ptables h1 h2)::ts);;
