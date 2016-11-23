@@ -54,25 +54,34 @@ let move _ (Move (_, _, b)) = b
 let rec loop p f x = if p x then x else loop p f (f x);;
 
 let rec exists p l =
-    match l with
-    | [] -> false
-    | h::rs -> if p h then true else exists p rs;;
+  match l with
+  | [] -> false
+  | h::rs -> if p h then true else exists p rs;;
 
 let rec find p l =
-    match l with
-    | [] -> raise NotFound
-    | h :: rs -> if p h then h else find p rs;;
+  match l with
+  | [] -> raise NotFound
+  | h :: rs -> if p h then h else find p rs;;
 
 (* --- Part A: A Generic Problem Solver --- *)
 
 let near x =
-  "Replace this string with your implementation." ;;
+  let upper = x + 2 in 
+  let rec aux accu i =
+    if i > upper then
+      accu
+    else
+      aux (accu @ [i]) (i + 1)
+  in
+  aux [] (x - 2);;
 
-let rec flat_map r =
-  "Replace this string with your implementation." ;;
+let rec flat_map r = function
+  |[] -> []
+  |x::xs -> List.append (r x) (flat_map r xs);; 
 
 let rec iter_rel rel n =
   "Replace this string with your implementation." ;;
+
 
 let solve r p x =
   "Replace this string with your implementation." ;;
